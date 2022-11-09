@@ -20,7 +20,8 @@ ENV GAME_NAME="zomboid"
 
 USER root
 RUN apt-get update
-RUN apt-get --yes --force-yes install vim
+RUN apt-get --yes --force-yes install vim openssh-server sudo
+RUN mkdir /var/run/sshd
 
 COPY ./${GAME_NAME}.service /usr/lib/systemd/system/
 
@@ -30,10 +31,21 @@ RUN chown game-admin:game-admin /opt/game-server
 USER game-admin
 
 COPY ./update_$GAME_NAME.txt /home/game-admin/
+COPY ./authorized_keys /home/game-admin/.ssh/
 COPY ./servertest.ini /home/game-admin/Zomboid/Server/
+COPY ./servertest_SandboxVars.lua /home/game-admin/Zomboid/Server/
+COPY ./servertest_spawnregions.lua /home/game-admin/Zomboid/Server/
 RUN bash /home/steam/steamcmd/steamcmd.sh +runscript $HOME/update_$GAME_NAME.txt
 
 WORKDIR /opt/game-server
 
+EXPOSE 22
 EXPOSE 16261/udp
 EXPOSE 16262/udp
+
+VOLUME [ "/home/game-admin/Zomboid" ]
+
+# Reset user to root
+USER root
+
+CMD ["/usr/sbin/sshd", "-D"]
